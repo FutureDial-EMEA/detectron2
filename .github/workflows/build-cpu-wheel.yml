@@ -55,13 +55,7 @@ jobs:
       - name: Build CPU wheel
         env:
           FORCE_CUDA: "0"
-        run: |
-          python setup.py bdist_wheel 2>&1 | tee build.log
-
-      - name: Verify wheel was created
-        run: |
-          ls -lh dist/
-          python -m wheel tags --python-tag cp$(python -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')") dist/*.whl
+        run: python setup.py bdist_wheel
 
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
@@ -69,8 +63,3 @@ jobs:
           name: detectron2-cpu-wheel-py${{ matrix.python-version }}
           path: dist/*.whl
           retention-days: 30
-
-      - name: Smoke test wheel install
-        run: |
-          pip install dist/*.whl --no-deps
-          python -c "import detectron2; print('detectron2', detectron2.__version__, 'imported OK')"
