@@ -4,6 +4,10 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      wheel-run-id:
+        description: "Run ID of the 'Build CPU Wheel' workflow that produced the artifact"
+        required: false
 
 env:
   REGISTRY: ghcr.io
@@ -28,6 +32,7 @@ jobs:
         with:
           name: detectron2-cpu-wheel
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.wheel-run-id }}
           path: dist/
 
       - name: Free disk space
