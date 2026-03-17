@@ -1,6 +1,8 @@
 name: Build CPU Wheel
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
