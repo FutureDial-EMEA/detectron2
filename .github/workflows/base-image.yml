@@ -3,6 +3,10 @@ name: Build & push detectron2 base image
 on:
   release:
     types: [published]
+  workflow_run:
+    workflows: ["Build CPU Wheel"]
+    branches: [main]
+    types: [completed]
   workflow_dispatch:
     inputs:
       wheel-run-id:
@@ -16,6 +20,9 @@ env:
 jobs:
   build-push:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: read
       packages: write
@@ -27,12 +34,21 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve wheel run ID
+        id: wheel-run
+        run: |
+          if [ -n "${{ inputs.wheel-run-id }}" ]; then
+            echo "id=${{ inputs.wheel-run-id }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download detectron2 CPU wheel
         uses: actions/download-artifact@v4
         with:
           name: detectron2-cpu-wheel
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ inputs.wheel-run-id }}
+          run-id: ${{ steps.wheel-run.outputs.id }}
           path: dist/
 
       - name: Free disk space
