@@ -1,0 +1,55 @@
+name: Build CUDA Wheel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-cuda-wheel:
+    runs-on: ubuntu-latest
+    container:
+      image: nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends \
+            python3.11 python3.11-dev python3-pip \
+            build-essential ninja-build \
+            libglib2.0-0 libsm6 libxrender1 libxext6
+
+      - name: Upgrade pip and install build tools
+        run: python3.11 -m pip install --upgrade pip wheel setuptools
+
+      - name: Install CUDA PyTorch and torchvision
+        run: |
+          python3.11 -m pip install \
+            "torch>=2.0.0" \
+            "torchvision>=0.15.0" \
+            --index-url https://download.pytorch.org/whl/cu121
+
+      - name: Install remaining compatible dependencies
+        run: |
+          python3.11 -m pip install \
+            "numpy>=1.24.0" \
+            "Pillow>=10.0.0" \
+            "opencv-python-headless>=4.8.0" \
+            "pycocotools>=2.0.2"
+
+      - name: Build CUDA wheel
+        env:
+          FORCE_CUDA: "1"
+          # Cover all Ampere/Turing/Volta/Pascal GPUs + future PTX fallback
+          TORCH_CUDA_ARCH_LIST: "6.0 6.1 7.0 7.5 8.0 8.6 9.0+PTX"
+        run: python3.11 setup.py bdist_wheel
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: detectron2-cuda-wheel
+          path: dist/*.whl
+          retention-days: 30
